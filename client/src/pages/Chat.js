@@ -505,26 +505,47 @@ const Chat = ({ user, currentChat }) => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          padding: '2rem',
+          borderRadius: '16px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
           zIndex: 1000,
-          minWidth: '300px'
+          minWidth: '320px',
+          maxWidth: '400px',
+          textAlign: 'center'
         }}>
-          <h3>{chatUser.name}</h3>
-          <p><strong>Email:</strong> {chatUser.email}</p>
-          <p><strong>Status:</strong> {chatUser.status || 'offline'}</p>
-          {chatUser.bio && <p><strong>Bio:</strong> {chatUser.bio}</p>}
-          {chatUser.phone && <p><strong>Phone:</strong> {chatUser.phone}</p>}
+          <img 
+            src={chatUser.pic || 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg'}
+            alt={chatUser.name}
+            style={{
+              width: '100px',
+              height: '100px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '4px solid #667eea',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+              marginBottom: '1rem'
+            }}
+            onError={(e) => {
+              e.target.onerror = null; 
+              e.target.src = 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg';
+            }}
+          />
+          <h3 style={{ color: '#2d3748', marginBottom: '0.5rem' }}>{chatUser.name}</h3>
+          <p style={{ color: '#6c757d', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{chatUser.email}</p>
+          
+          <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+            <p><strong>Status:</strong> <span style={{ color: chatUser.status === 'online' ? '#48bb78' : '#cbd5e0' }}>{chatUser.status || 'offline'}</span></p>
+            {chatUser.bio && <p><strong>Bio:</strong> {chatUser.bio}</p>}
+            {chatUser.phone && <p><strong>Phone:</strong> {chatUser.phone}</p>}
+          </div>
+          
           <button
             onClick={() => setShowProfile(false)}
+            className='btn-secondary'
             style={{
-              padding: '8px 16px',
-              background: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
+              width: '100%',
+              padding: '0.75rem',
+              fontSize: '1rem'
             }}
           >
             Close

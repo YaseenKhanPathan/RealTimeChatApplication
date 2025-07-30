@@ -7,6 +7,9 @@ const ChatPage = ({ user, onLogout }) => {
   const [chats, setChats] = useState([]);
   const [newChatUser, setNewChatUser] = useState("");
   
+  // Mobile sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   // Group chat states
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -153,9 +156,60 @@ const ChatPage = ({ user, onLogout }) => {
   // Deduplicate chats by _id before rendering
   const uniqueChats = Array.from(new Map(chats.map(chat => [chat._id, chat])).values());
 
+  // Handle chat selection and close sidebar on mobile
+  const handleChatSelect = (chat) => {
+    setSelectedChat(chat);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="chat-page">
-      <div className="chat-sidebar">
+      {/* Mobile Menu Button */}
+      <button 
+        className="mobile-menu-btn"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        style={{
+          display: 'none',
+          position: 'fixed',
+          top: '1rem',
+          left: '1rem',
+          zIndex: 1001,
+          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          fontSize: '1.2rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {isSidebarOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="mobile-overlay"
+          onClick={() => setIsSidebarOpen(false)}
+          style={{
+            display: 'none',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999
+          }}
+        />
+      )}
+
+      <div className={`chat-sidebar ${isSidebarOpen ? 'sidebar-open' : ''}`}>
         <h2>Chats</h2>
         <form
           onSubmit={async (e) => {
@@ -223,14 +277,71 @@ const ChatPage = ({ user, onLogout }) => {
           return (
             <div
               key={chat._id}
-              onClick={() => setSelectedChat(chat)}
+              onClick={() => handleChatSelect(chat)}
               className="chat-item"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '1rem',
+                marginBottom: '0.5rem',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}
             >
-              {chat.isGroupChat
-                ? chat.chatName
-                : otherUser
-                  ? otherUser.name
-                  : "Chat"}
+              {!chat.isGroupChat && otherUser ? (
+                <img
+                  src={otherUser.pic || 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg'}
+                  alt={otherUser.name}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    marginRight: '12px',
+                    border: '2px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg';
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: '12px',
+                  fontSize: '1.2rem'
+                }}>
+                  👥
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>
+                  {chat.isGroupChat
+                    ? chat.chatName
+                    : otherUser
+                      ? otherUser.name
+                      : "Chat"}
+                </div>
+                {!chat.isGroupChat && otherUser && (
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    opacity: 0.7, 
+                    marginTop: '2px'
+                  }}>
+                    {otherUser.status === 'online' ? '🟢 Online' : '⚫ Offline'}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -281,6 +392,71 @@ const ChatPage = ({ user, onLogout }) => {
             maxWidth: "500px"
           }}>
             <h3>Edit Profile</h3>
+            
+            {/* Profile Picture Display */}
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '20px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '2px dashed #e2e8f0'
+            }}>
+              {profileData.pic ? (
+                <div>
+                  <img
+                    src={profileData.pic}
+                    alt={profileData.name}
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '4px solid #667eea',
+                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                      marginBottom: '10px'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <div style={{
+                    display: 'none',
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e2e8f0',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px auto',
+                    fontSize: '2rem',
+                    color: '#6c757d'
+                  }}>
+                    👤
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6c757d' }}>Current Profile Picture</p>
+                </div>
+              ) : (
+                <div>
+                  <div style={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px auto',
+                    fontSize: '2.5rem',
+                    color: '#6c757d'
+                  }}>
+                    👤
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6c757d' }}>No profile picture set</p>
+                </div>
+              )}
+            </div>
             
             <div style={{ marginBottom: "15px" }}>
               <label>Name:</label>
