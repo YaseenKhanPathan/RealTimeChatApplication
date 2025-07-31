@@ -10,6 +10,12 @@ const ChatPage = ({ user, onLogout }) => {
   // Mobile sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
+  // Desktop action menu state
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  
+  // New chat modal state
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  
   // Group chat states
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -164,6 +170,34 @@ const ChatPage = ({ user, onLogout }) => {
     }
   };
 
+  // Handle start chat functionality
+  const handleStartChat = async (email) => {
+    try {
+      const { data: users } = await axios.get(`/api/user?search=${email}`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      if (!users.length) {
+        alert("User not found");
+        return;
+      }
+      const userId = users[0]._id;
+      const { data: chat } = await axios.post(
+        "/api/chat",
+        { userId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setChats((prev) => {
+        if (prev.some(c => c._id === chat._id)) return prev;
+        return [chat, ...prev];
+      });
+      setSelectedChat(chat);
+      setNewChatUser("");
+    } catch (error) {
+      alert("Failed to start chat");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="chat-page">
       {/* Mobile Menu Button */}
@@ -210,64 +244,79 @@ const ChatPage = ({ user, onLogout }) => {
       )}
 
       <div className={`chat-sidebar ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-        <h2>Chats</h2>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              // Search for user by email
-              const { data: users } = await axios.get(`/api/user?search=${newChatUser}`, {
-                headers: { Authorization: `Bearer ${user.token}` },
-              });
-              if (!users.length) {
-                alert("User not found");
-                return;
-              }
-              const userId = users[0]._id;
-              // Create/access chat
-              const { data: chat } = await axios.post(
-                "/api/chat",
-                { userId },
-                { headers: { Authorization: `Bearer ${user.token}` } }
-              );
-              setChats((prev) => {
-                if (prev.some(c => c._id === chat._id)) return prev;
-                return [chat, ...prev];
-              });
-              setSelectedChat(chat);
-              setNewChatUser("");
-            } catch (error) {
-              alert("Failed to start chat");
-              console.error(error);
-            }
-          }}
-          style={{ marginBottom: "1em" }}
-        >
-          <input
-            type="text"
-            placeholder="Enter user email to chat"
-            value={newChatUser}
-            onChange={(e) => setNewChatUser(e.target.value)}
-            required
-          />
-          <button type="submit">Start Chat</button>
-        </form>
+        {/* Header with Action Menu */}
+        <div className="sidebar-header">
+          <h2>Chats</h2>
+          <div className="action-menu-container">
+            <button 
+              className="action-menu-trigger"
+              onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+              title="Menu"
+            >
+              <div className="modern-hamburger">
+                <span className={`hamburger-line ${isActionMenuOpen ? 'active' : ''}`}></span>
+                <span className={`hamburger-line ${isActionMenuOpen ? 'active' : ''}`}></span>
+                <span className={`hamburger-line ${isActionMenuOpen ? 'active' : ''}`}></span>
+              </div>
+            </button>
+            
+            {/* Action Menu Dropdown */}
+            {isActionMenuOpen && (
+              <div className="action-menu-dropdown">
+                <button 
+                  onClick={() => {
+                    setShowGroupModal(true);
+                    setIsActionMenuOpen(false);
+                  }} 
+                  className="action-menu-item"
+                >
+                  <span className="action-icon">👥</span>
+                  Create Group
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setShowProfileModal(true);
+                    setIsActionMenuOpen(false);
+                  }} 
+                  className="action-menu-item"
+                >
+                  <span className="action-icon">👤</span>
+                  My Profile
+                </button>
+                
+                <div className="action-menu-divider"></div>
+                
+                <button 
+                  onClick={() => {
+                    onLogout();
+                    setIsActionMenuOpen(false);
+                  }}
+                  className="action-menu-item logout-item"
+                >
+                  <span className="action-icon">🚪</span>
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         
-        {/* Create Group Chat Button */}
-        <button 
-          onClick={() => setShowGroupModal(true)} 
-          className="create-group-btn fade-in-up"
-        >
-          Create Group Chat
-        </button>
-
-        {/* Profile Button */}
-        <button 
-          onClick={() => setShowProfileModal(true)} 
-          className="profile-btn fade-in-up"
-        >
-          My Profile
-        </button>
+        {/* Sidebar New Chat Button */}
+        <div className="sidebar-new-chat">
+          <button 
+            className="sidebar-chat-btn"
+            onClick={() => setShowNewChatModal(true)}
+            title="Start New Chat"
+          >
+            <span className="plus-icon">+</span>
+            <span className="new-chat-text">New Chat</span>
+          </button>
+        </div>
+        
+        {/* Chats List Section */}
+        <div className="chats-section">
+          <div className="section-label">Recent Chats</div>
         
         {uniqueChats.map((chat) => {
           // For one-on-one chat, find the other user
@@ -345,10 +394,73 @@ const ChatPage = ({ user, onLogout }) => {
             </div>
           );
         })}
-        <button onClick={onLogout} className="logout-button">
-          Logout
-        </button>
+        </div>
       </div>
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="modal" onClick={() => setShowNewChatModal(false)}>
+          <div className="modal-content new-chat-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>💬 Start New Chat</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowNewChatModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="modal-description">
+                Enter the email address of the person you want to chat with
+              </p>
+              
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newChatUser.trim()) {
+                    await handleStartChat(newChatUser);
+                    setShowNewChatModal(false);
+                  }
+                }}
+                className="new-chat-form"
+              >
+                <div className="input-wrapper">
+                  <input
+                    type="email"
+                    placeholder="Enter user email..."
+                    value={newChatUser}
+                    onChange={(e) => setNewChatUser(e.target.value)}
+                    required
+                    className="new-chat-input"
+                    autoFocus
+                  />
+                  <span className="input-icon">📧</span>
+                </div>
+                
+                <div className="modal-actions">
+                  <button 
+                    type="button"
+                    onClick={() => setShowNewChatModal(false)}
+                    className="btn-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="btn-start-chat"
+                    disabled={!newChatUser.trim()}
+                  >
+                    <span className="btn-icon">💬</span>
+                    Start Chat
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="chat-main">
         {selectedChat ? (
